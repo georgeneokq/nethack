@@ -3,8 +3,6 @@ Documentation for scapy OSPF:
 https://scapy.readthedocs.io/en/latest/api/scapy.contrib.ospf.html
 """
 
-# from scapy.contrib.ospf import OSPF_Hello, OSPF_LSAck, OSPF_LSUpd
-# from scapy.fields import PacketListField
 from time import sleep
 from scapy.contrib.ospf import *
 from scapy.all import *
