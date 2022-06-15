@@ -37,6 +37,7 @@ def main():
     for mapping in args.map:
       [network_address, answer_ip] = mapping.split(separator)
       mapping_dict[network_address] = answer_ip
+
     intercept_dns(mapping_dict)
     
 

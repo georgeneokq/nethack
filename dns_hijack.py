@@ -35,7 +35,7 @@ def intercept_dns(intercept_map: dict):
       dns: DNS = packet['DNS']
       requested_domain = dns.qd.qname
       reply_packet = (
-        IP(dst='127.0.0.1') /
+        IP(dst=origin_src) /
         UDP(sport=53, dport=packet['UDP'].sport) /
         DNS(qr=1, an=DNSRR(rrname=requested_domain, rdata=answer_map[origin_src]))
       )

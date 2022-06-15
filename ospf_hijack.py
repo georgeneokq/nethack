@@ -16,10 +16,8 @@ OSPF_Router_LSA_types = {
   "virtual": 4
 }
 
-# MY_IP = IP().src
-# ADVERTISE_IP = '224.0.0.5'
-MY_IP = '127.0.0.1'
-ADVERTISE_IP = '127.0.0.1'
+MY_IP = IP().src
+ADVERTISE_IP = '224.0.0.5'
 
 # FOR TESTING
 TEST_NETWORKS = [
