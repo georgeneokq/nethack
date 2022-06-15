@@ -30,11 +30,15 @@ def intercept_dns(intercept_map: dict):
       answer_map[str(host)] = answer_ip
   
   def intercept(packet: Packet):
-    if packet.haslayer('DNS') and answer_map.get(packet['IP'].src):
+    if packet.haslayer('DNS') and packet['IP'].src in answer_map:
       origin_src = packet['IP'].src
       dns: DNS = packet['DNS']
       requested_domain = dns.qd.qname
-      reply_packet = IP(dst='127.0.0.1') / UDP() / DNS(an=DNSRR(rrname=requested_domain, rdata=answer_map[origin_src]))
+      reply_packet = (
+        IP(dst='127.0.0.1') /
+        UDP(sport=53, dport=packet['UDP'].sport) /
+        DNS(qr=1, an=DNSRR(rrname=requested_domain, rdata=answer_map[origin_src]))
+      )
       send(reply_packet)
 
 

@@ -31,6 +31,7 @@ def main():
     spam_hello_and_advertisements(networks=args.networks)
   
   if attack == 'dns':
+    # Colon separated key-value
     separator = ':'
     mapping_dict = {}
     for mapping in args.map:
