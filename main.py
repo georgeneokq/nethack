@@ -35,8 +35,8 @@ def main():
     separator = ':'
     mapping_dict = {}
     for mapping in args.map:
-      [network_address, answer_ip] = mapping.split(separator)
-      mapping_dict[network_address] = answer_ip
+      [domain_name, answer_ip] = mapping.split(separator)
+      mapping_dict[domain_name] = answer_ip
 
     intercept_dns(mapping_dict)
     
