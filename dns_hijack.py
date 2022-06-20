@@ -3,7 +3,11 @@ from scapy.layers.dns import *
 
 TEST_MAPPING = {
   "en.wikipedia.org": "172.67.149.198",
-  "localhost": "172.67.149.198"
+  "google.com": "172.67.149.198",
+  "translate.google.com": "172.67.149.198",
+  "docs.google.com": "172.67.149.198",
+  "yahoo.com": "172.67.149.198",
+  "msn.com": "172.67.149.198",
 }
 
 def is_dns_query(packet: Packet):
@@ -50,7 +54,10 @@ def intercept_dns(intercept_map: dict):
         IP(dst=origin_src) /
         UDP(sport=53, dport=packet['UDP'].sport) /
         DNS(
+          id=dns.id,
           qr=1,
+          ra=1,
+          qd=dns.qd,
           an=DNSRR(rrname=requested_domain, rdata=intercept_map[requested_domain_str])
         )
       )
