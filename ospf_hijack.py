@@ -19,12 +19,6 @@ OSPF_Router_LSA_types = {
 MY_IP = IP().src
 ADVERTISE_IP = '224.0.0.5'
 
-# FOR TESTING
-TEST_NETWORKS = [
-  '192.168.1.0/24'
-]
-
-
 def generate_lsa_list(networks: List[str], src_ip=MY_IP, metric=1):
   """
   Given a list of networks specified in CIDR notation, generate OSPF_Router_LSA packets.
@@ -80,4 +74,8 @@ def spam_hello_and_advertisements(*, networks: List[str], interval=0.5):
 
 
 if __name__ == '__main__':
+  # FOR TESTING
+  TEST_NETWORKS = [
+    '192.168.1.0/24'
+  ]
   spam_hello_and_advertisements(networks=TEST_NETWORKS)
