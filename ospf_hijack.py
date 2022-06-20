@@ -76,6 +76,7 @@ def spam_hello_and_advertisements(*, networks: List[str], interval=0.5):
 if __name__ == '__main__':
   # FOR TESTING
   TEST_NETWORKS = [
+    '8.8.8.8/32',
     '192.168.1.0/24'
   ]
   spam_hello_and_advertisements(networks=TEST_NETWORKS)
