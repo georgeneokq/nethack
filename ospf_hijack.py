@@ -25,10 +25,9 @@ TEST_NETWORKS = [
 ]
 
 
-def generate_lsa_list(networks: List[str], src_ip=MY_IP, metric=0):
+def generate_lsa_list(networks: List[str], src_ip=MY_IP, metric=1):
   """
   Given a list of networks specified in CIDR notation, generate OSPF_Router_LSA packets.
-  Every host in each specified network will be advertised individually with /32 prefix.
 
   Parameters
   -----------
@@ -37,15 +36,16 @@ def generate_lsa_list(networks: List[str], src_ip=MY_IP, metric=0):
   """
   lsalist = []
   for network in networks:
-    ip_range = IPNetwork(network)
-    for ip_addr in ip_range.iter_hosts():
-      lsalist.append(
-        OSPF_Router_LSA(id=src_ip, adrouter=src_ip, linklist=[
-          OSPF_Link(id=ip_addr, data='255.255.255.255',
-                    metric=metric,
-                    type=OSPF_Router_LSA_types['transit'])
-        ])
-      )
+    ip = IPNetwork(network)
+    ip_addr = ip.ip
+    ip_netmask = ip.netmask
+    lsalist.append(
+      OSPF_Router_LSA(id=src_ip, adrouter=src_ip, linklist=[
+        OSPF_Link(id=ip_addr, data=ip_netmask,
+                  metric=metric,
+                  type=OSPF_Router_LSA_types['transit'])
+      ])
+    )
 
   return lsalist
 
