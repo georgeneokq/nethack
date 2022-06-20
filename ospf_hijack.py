@@ -37,15 +37,15 @@ def generate_lsa_list(networks: List[str], src_ip=MY_IP, metric=0):
   """
   lsalist = []
   for network in networks:
-      ip_range = IPNetwork(network)
-      for ip_addr in ip_range.iter_hosts():
-          lsalist.append(
-              OSPF_Router_LSA(id=src_ip, adrouter=src_ip, linklist=[
-                  OSPF_Link(id=ip_addr, data='255.255.255.255',
-                            metric=metric,
-                            type=OSPF_Router_LSA_types['transit'])
-              ])
-          )
+    ip_range = IPNetwork(network)
+    for ip_addr in ip_range.iter_hosts():
+      lsalist.append(
+        OSPF_Router_LSA(id=src_ip, adrouter=src_ip, linklist=[
+          OSPF_Link(id=ip_addr, data='255.255.255.255',
+                    metric=metric,
+                    type=OSPF_Router_LSA_types['transit'])
+        ])
+      )
 
   return lsalist
 
@@ -68,15 +68,15 @@ def spam_hello_and_advertisements(*, networks: List[str], interval=0.5):
 
   print('Spamming hello and LSUpdate packets.')
   while True:
-      hello_packet = IP(dst=ADVERTISE_IP) / \
-          OSPF_Hdr(src=MY_IP) / OSPF_Hello()
-      send(hello_packet, verbose=False)
+    hello_packet = IP(dst=ADVERTISE_IP) / \
+      OSPF_Hdr(src=MY_IP) / OSPF_Hello()
+    send(hello_packet, verbose=False)
 
-      update_packet = IP(dst=ADVERTISE_IP) / \
-          OSPF_Hdr(src=MY_IP) / OSPF_LSUpd(lsalist=lsalist)
-      send(update_packet, verbose=False)
+    update_packet = IP(dst=ADVERTISE_IP) / \
+        OSPF_Hdr(src=MY_IP) / OSPF_LSUpd(lsalist=lsalist)
+    send(update_packet, verbose=False)
 
-      sleep(interval)
+    sleep(interval)
 
 
 if __name__ == '__main__':
