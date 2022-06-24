@@ -5,8 +5,7 @@ from scapy.all import *
 from scapy.contrib.eigrp import *
 from netaddr import IPNetwork
 from time import sleep
-
-MY_IP = '127.0.0.1'
+from config import MY_IP
 
 def eigrp_inject_routes(*, networks: List[str], asn=1, interval=1):
   """

