@@ -1,4 +1,3 @@
-from argparse import ONE_OR_MORE
 from scapy.all import *
 from scapy.layers.dns import *
 from config import MY_IP
@@ -95,7 +94,7 @@ def intercept_dns(intercept_map: dict):
       print(f'Domain {requested_domain_str} not in {str(intercept_map)}')
       dns_response = get_real_dns_response(packet, REACHABLE_DNS_SERVER)
       if dns_response is not None:
-        print(f'Answering query for {requested_domain_str} with legitimate IP {dns_response["DNSRR"].rdata.decode()}')
+        print(f'Answering query for {requested_domain_str} with legitimate IP {dns_response["DNSRR"].rdata}')
       else:
         print(f'Unable to contact DNS server {REACHABLE_DNS_SERVER}')
     else:
