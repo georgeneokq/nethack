@@ -10,7 +10,7 @@ from config import MY_IP
 def eigrp_inject_routes(*, networks: List[str], asn=1, interval=1):
   """
   Given a list of network addresses specified in CIDR notation,
-  flood those networks with OSPF Hello packets and LSA updates.
+  flood those networks with EIGRP Hello packets and LSA updates.
 
   Parameters
   -----------

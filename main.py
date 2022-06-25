@@ -7,8 +7,8 @@ def main():
   subparsers = parser.add_subparsers(dest='attack')
   subparsers.required = True
   
-  ospf_subparser = subparsers.add_parser('eigrp')
-  ospf_subparser.add_argument('networks',
+  eigrp_subparser = subparsers.add_parser('eigrp')
+  eigrp_subparser.add_argument('networks',
     nargs='+',
     type=str,
     action='store',
