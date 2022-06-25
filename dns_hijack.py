@@ -29,7 +29,7 @@ def get_real_dns_response(dns_request: Packet, dns_server: str) -> Packet:
   if DNS not in dns_request:
     return None
   
-  new_dns_request = (IP(src=MY_IP, dst=REACHABLE_DNS_SERVER) /
+  new_dns_request = (IP(src=MY_IP, dst=dns_server) /
                     UDP(sport=dns_request['UDP'].sport, dport=53) /
                     DNS(
                       id=dns_request['DNS'].id,
