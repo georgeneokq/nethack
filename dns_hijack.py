@@ -29,6 +29,7 @@ def get_real_dns_response(dns_request: Packet, dns_server: str) -> Packet:
   if DNS not in dns_request:
     return None
   
+  # Form a new DNS request packet based on the one received
   new_dns_request = (IP(src=MY_IP, dst=dns_server) /
                     UDP(sport=dns_request['UDP'].sport, dport=53) /
                     DNS(
@@ -36,9 +37,11 @@ def get_real_dns_response(dns_request: Packet, dns_server: str) -> Packet:
                       qd=dns_request['DNS'].qd
                     ))
   
-  # Forward the packet to specified DNS server
+  # Send the new DNS request packet to the specified DNS server
   dns_response = sr1(new_dns_request, timeout=1, verbose=0)
   if dns_response:
+    # Form a new DNS response packet based on the one received from
+    # legitimate DNS server
     new_dns_response = (IP(src=MY_IP, dst=dns_request['IP'].src) /
                         UDP(sport=53, dport=dns_request['UDP'].sport) /
                         DNS(
@@ -73,7 +76,6 @@ def intercept_dns(intercept_map: dict):
   intercept_map_modified = {}
   for key in intercept_map.keys():
     intercept_map_modified[f'www.{key}'] = intercept_map[key]
-
   intercept_map |= intercept_map_modified
 
   print('Mapping:')
