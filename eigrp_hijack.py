@@ -23,7 +23,7 @@ def eigrp_inject_routes(*, networks: List[str], asn=1, interval=1):
 
   while True:
     # Send Hello
-    sendp(Ether()/IP(src=MY_IP,dst="224.0.0.10")/EIGRP(asn=100,
+    sendp(Ether()/IP(src=MY_IP,dst="224.0.0.10")/EIGRP(asn=asn,
       tlvlist=[EIGRPParam(),EIGRPSwVer()]))
 
     # Send route updates
